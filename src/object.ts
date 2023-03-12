@@ -335,6 +335,7 @@ export class Palyer extends BaseObject {
 export class IntObject extends BaseObject {
 	attack_frame = 0
 	def_frame = 0
+	def_cold = 0
 	constructor(p_x, p_y) {
 		super(p_x, p_y, "int", 1)
 	}
@@ -384,6 +385,9 @@ export class IntObject extends BaseObject {
 			}
 			this.def_frame++
 		}
+		if (this.def_cold > 0) {
+			this.def_cold--
+		}
 		return state_change
 	}
 	StateMove() {
@@ -402,14 +406,16 @@ export class IntObject extends BaseObject {
 				this.speed.x = 3
 			}
 		}
-		if (this.state == MyState.NORMAL || this.state == MyState.ATTACK) {
+		if ((this.state == MyState.NORMAL || this.state == MyState.ATTACK) && (this.def_cold == 0)) {
 			object_list.forEach((v, i) => {
 				if (NormalAttackJudge(v, this, 2)) {
 					this.state = MyState.DEFEN
+					this.def_cold = 100
 				}
 			})
 			if (my_player.state == MyState.ATTACK && my_player.direction != this.direction && NormalAttackJudge(my_player, this, 3)) {
 				this.state = MyState.DEFEN
+				this.def_cold = 100
 			}
 		}
 	}

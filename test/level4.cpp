@@ -5,7 +5,7 @@ int main()
 	bool final_test = true;
 	if (final_test)
 	{
-		for (double i=0;i<10;i++)
+		for (int i=0;i<10;i++)
 		{
 			std::cout << i;
 		}
