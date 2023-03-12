@@ -13,6 +13,26 @@ export var object_list = new Array<BaseObject>()
 export var enemy_list = new Array<BaseObject>()
 export var my_player: Palyer = new Palyer(2, 9)
 
+class StatusBar {
+	private _actual: vscode.StatusBarItem;
+	private _lastText: string;
+
+	constructor() {
+		this._actual = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+		this._actual.show();
+	}
+
+	public setText(text: string): void {
+		if (this._lastText === text) {
+			return;
+		}
+		this._lastText = text;
+		this._actual.text = this._lastText;
+	}
+}
+
+var statusBar = new StatusBar();
+statusBar.setText("Good Luck!")
 
 function delay(ms: number) {
 	return new Promise(resolve => setTimeout(resolve, ms));
@@ -31,13 +51,6 @@ export function activate(context: vscode.ExtensionContext) {
 	// });
 
 
-	// context.subscriptions.push(vscode.commands.registerCommand("a", () => {
-	// 	console.log("a")
-	// }));
-
-	// context.subscriptions.push(vscode.commands.registerCommand("d", () => {
-	// 	console.log("d")
-	// }));
 
 	context.subscriptions.push(vscode.commands.registerCommand('type', type));
 
@@ -45,15 +58,15 @@ export function activate(context: vscode.ExtensionContext) {
 		map.push(vscode.window.activeTextEditor.document.lineAt(i).text)
 	}
 
-	// map.forEach((v, i) => {
-	// 	let str = "int"
-	// 	let t_id1 = v.indexOf(str)
-	// 	if (t_id1 > 0) {
-	// 		v = v.slice(0, t_id1) + " ".repeat(str.length) + v.slice(t_id1 + 3)
-	// 		let tmp1: IntObject = new IntObject(t_id1, i)
-	// 		enemy_list.push(tmp1)
-	// 	}
-	// })
+	map.forEach((v, i) => {
+		let str = "int"
+		let t_id1 = v.indexOf(str)
+		if (t_id1 > 0) {
+			map[i] = v.slice(0, t_id1) + " ".repeat(str.length) + v.slice(t_id1 + 3)
+			let tmp1: IntObject = new IntObject(t_id1, i)
+			enemy_list.push(tmp1)
+		}
+	})
 
 	// let t_id2 = vscode.window.activeTextEditor.document.lineAt(9).text.indexOf("float")
 	// map[9] = map[9].slice(0, t_id2) + " ".repeat("float".length) + map[9].slice(t_id2 + "float".length)
@@ -65,11 +78,20 @@ export function activate(context: vscode.ExtensionContext) {
 	// map[9] = map[9].slice(0, t_id3) + " ".repeat("for".length) + map[9].slice(t_id3 + "for".length)
 	// let tmp3: ForObject = new ForObject(t_id3, 9)
 	// enemy_list.push(tmp3)
+	// console.log(map)
+	// console.log(enemy_list)
 
 	my_player.Show()
 	let loop_flag = true
 	this.intervalId = setInterval(() => {
 		if (loop_flag) {
+			if (my_player.state == MyState.DEAD) {
+				statusBar.setText("Game Over!")
+			}
+			// console.log(enemy_list)
+			if (enemy_list.length == 0) {
+				statusBar.setText("You Win!")
+			}
 			loop_flag = false
 			render_list = new Array()
 			my_player.Active()
@@ -84,7 +106,7 @@ export function activate(context: vscode.ExtensionContext) {
 			})
 			enemy_list.forEach((v, i) => {
 				if (v.state == MyState.DEAD) {
-					object_list.splice(i, 1)
+					enemy_list.splice(i, 1)
 				}
 				else {
 					v.Move()

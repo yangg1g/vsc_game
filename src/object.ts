@@ -41,7 +41,12 @@ export class BaseObject {
 			this.last_sprite = this.show_sprite
 		}
 	}
-	Move() { }
+	StateMove() { }
+	Move() {
+		if (this.state != MyState.DEAD) {
+			this.StateMove()
+		}
+	}
 	InAttack(direction: number) {
 		if (this.state != MyState.SIDE && !(this.state == MyState.DEFEN && direction != this.direction)) {
 			this.Dead()
@@ -354,7 +359,7 @@ export class IntObject extends BaseObject {
 		}
 		return state_change
 	}
-	Move() {
+	StateMove() {
 		if (this.state == MyState.NORMAL && this.speed.x * this.speed.x < 0.5) {
 			if (NormalAttackJudge(this, my_player, 2)) {
 				if (this.state == MyState.NORMAL) {
@@ -408,7 +413,7 @@ export class FloatObject extends BaseObject {
 		}
 		return state_change
 	}
-	Move() {
+	StateMove() {
 		if (Math.round(my_player.nowPosition.y - this.nowPosition.y) == 0 && this.attack_frame == 0) {
 			if (my_player.nowPosition.x < this.nowPosition.x) {
 				this.direction = -1
@@ -468,7 +473,7 @@ export class ForObject extends BaseObject {
 		}
 		return state_change
 	}
-	Move() {
+	StateMove() {
 		let i = Math.round(this.nowPosition.y) + 1
 		while (i < map.length && (Math.round(this.nowPosition.x) >= map[i].length || map[i][Math.round(this.nowPosition.x)].trim() == '')) {
 			i++
