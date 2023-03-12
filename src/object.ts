@@ -19,6 +19,9 @@ export class BaseObject {
 		this.last_sprite = sprite
 		this.tier = tier
 	}
+	UpdatePos(p_x, p_y) {
+		this.nowPosition = new MyPosition(p_x, p_y)
+	}
 	Show() {
 		render_list.push([Math.round(this.nowPosition.x), Math.round(this.nowPosition.y), this.sprite, this.tier])
 	}
@@ -57,7 +60,10 @@ export class BaseObject {
 		render_list.push([Math.round(this.nowPosition.x), Math.round(this.nowPosition.y), " ".repeat(this.last_sprite.length), this.tier])
 	}
 	GravityProc() {
-		this.speed.y += 2
+		this.speed.y += 1.5
+		if (this.speed.y > 10) {
+			this.speed.y = 10
+		}
 		if (Math.abs(this.speed.x) > 0.01 && on_ground(this.nowPosition, this.sprite.length) && this.state != MyState.SIDE) {
 			if (this.speed.x > 0) {
 				this.speed.x -= 0.5
@@ -114,6 +120,21 @@ function NormalAttackJudge(a: BaseObject, b: BaseObject, range: number) {
 		return Math.round(b.nowPosition.y - a.nowPosition.y) == 0 && b.nowPosition.x + b.show_sprite.length < a.nowPosition.x + a.show_sprite.length / 2 && b.nowPosition.x + b.show_sprite.length > a.nowPosition.x - range
 	}
 }
+
+function ObjectCollision(a: BaseObject, b: BaseObject) {
+	if (Math.round(b.nowPosition.y - a.nowPosition.y) == 0) {
+		if (b.nowPosition.x > a.nowPosition.x) {
+			if (b.nowPosition.x < a.nowPosition.x + a.show_sprite.length) {
+				return true
+			}
+		}
+		else if (b.nowPosition.x + b.sprite.length > a.nowPosition.x) {
+			return true
+		}
+	}
+	return false
+}
+
 export class Item extends BaseObject {
 	src: ObjState
 	constructor(p_x, p_y, v_x, v_y, sprite, src) {
@@ -152,7 +173,7 @@ export class Item extends BaseObject {
 		let state_change = false
 		if (this.src == ObjState.PLAYER) {
 			enemy_list.forEach((v, i) => {
-				if (NormalAttackJudge(this, v, 1)) {
+				if (ObjectCollision(this, v)) {
 					enemy_list[i].InAttack(this.direction)
 					this.Dead()
 					this.show_sprite = ''
@@ -161,7 +182,7 @@ export class Item extends BaseObject {
 			})
 		}
 		else if (this.src == ObjState.ENEMY) {
-			if (NormalAttackJudge(this, my_player, 1)) {
+			if (ObjectCollision(this, my_player)) {
 				my_player.InAttack(this.direction)
 				this.Dead()
 				this.show_sprite = ''
@@ -171,10 +192,12 @@ export class Item extends BaseObject {
 		return state_change
 	}
 }
+
 export class Palyer extends BaseObject {
 	attack_frame = 0
 	magatt_frame = 0
 	side_frame = 0
+	side_cold = 0
 	constructor(p_x, p_y) {
 		super(p_x, p_y, "₍ᐢ..ᐢ₎", 0);
 	}
@@ -252,6 +275,9 @@ export class Palyer extends BaseObject {
 				this.magatt_frame = 0
 			}
 		}
+		if (this.side_cold > 0) {
+			this.side_cold--
+		}
 		// console.log(this.state)
 		return state_change
 	}
@@ -286,7 +312,8 @@ export class Palyer extends BaseObject {
 			}
 		}
 		else if (key == "l") {
-			if (this.state == MyState.NORMAL) {
+			if (this.state == MyState.NORMAL && this.side_cold == 0) {
+				this.side_cold = 100
 				this.state = MyState.SIDE
 			}
 		}
@@ -383,6 +410,64 @@ export class IntObject extends BaseObject {
 			})
 			if (my_player.state == MyState.ATTACK && my_player.direction != this.direction && NormalAttackJudge(my_player, this, 3)) {
 				this.state = MyState.DEFEN
+			}
+		}
+	}
+}
+
+export class CharObject extends BaseObject {
+	attack_frame = 0
+	def_frame = 0
+	constructor(p_x, p_y) {
+		super(p_x, p_y, "char", 1)
+	}
+	StateProc(): boolean {
+		let state_change = false
+		if (this.state == MyState.ATTACK) {
+			if (this.attack_frame == 0) {
+				state_change = true
+				if (this.direction == 1) {
+					this.show_sprite = "cha}"
+				}
+				else {
+					this.show_sprite = "{har"
+				}
+			}
+			else if (this.attack_frame == 10) {
+				state_change = true
+				if (this.direction == 1) {
+					this.show_sprite = "cha>"
+				}
+				else {
+					this.show_sprite = "<har"
+				}
+				if (NormalAttackJudge(this, my_player, 2)) {
+					my_player.InAttack(this.direction)
+				}
+			}
+			else if (this.attack_frame == 20) {
+				this.state = MyState.NORMAL
+				this.attack_frame = -1
+				state_change = true
+			}
+			this.attack_frame++
+		}
+		return state_change
+	}
+	StateMove() {
+		if (this.state == MyState.NORMAL && this.speed.x * this.speed.x < 0.5) {
+			if (NormalAttackJudge(this, my_player, 2)) {
+				if (this.state == MyState.NORMAL) {
+					this.state = MyState.ATTACK
+				}
+			}
+			else if (my_player.nowPosition.x < this.nowPosition.x) {
+				this.direction = -1
+				this.speed.x = -5
+			}
+			else {
+				this.direction = 1
+				this.speed.x = 5
 			}
 		}
 	}
