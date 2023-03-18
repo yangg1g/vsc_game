@@ -42,100 +42,92 @@ function type(args): void {
 	my_player.KeyMove(args.text)
 }
 
-var loop_flag = true
-
-function render() {
-	if (loop_flag) {
-		loop_flag = false
-		render_list = new Array()
-		my_player.Active()
-		object_list.forEach((v, i) => {
-			if (v.state == MyState.DEAD) {
-				object_list.splice(i, 1)
+async function render() {
+	render_list = new Array()
+	my_player.Active()
+	object_list.forEach((v, i) => {
+		if (v.state == MyState.DEAD) {
+			object_list.splice(i, 1)
+		}
+		else {
+			v.Move()
+			v.Active()
+		}
+	})
+	enemy_list.forEach((v, i) => {
+		if (v.state == MyState.DEAD) {
+			enemy_list.splice(i, 1)
+		}
+		else {
+			v.Move()
+			v.Active()
+		}
+	})
+	while (render_list.length > 0) {
+		let render_flag = true
+		render_list = render_list.sort((a, b) => {
+			if (a[1] != b[1]) {
+				return a[1] - b[1]
+			}
+			else if (a[0] - b[0]) {
+				return a[0] - b[0]
 			}
 			else {
-				v.Move()
-				v.Active()
+				return a[2].length - b[2].length
 			}
 		})
-		enemy_list.forEach((v, i) => {
-			if (v.state == MyState.DEAD) {
-				enemy_list.splice(i, 1)
-			}
-			else {
-				v.Move()
-				v.Active()
-			}
-		})
-		while (render_list.length > 0) {
-			let render_flag = true
-			render_list = render_list.sort((a, b) => {
-				if (a[1] != b[1]) {
-					return a[1] - b[1]
-				}
-				else if (a[0] - b[0]) {
-					return a[0] - b[0]
-				}
-				else {
-					return a[2].length - b[2].length
-				}
-			})
-			// console.log(render_list)
-			let i = 0
-			while (i < render_list.length - 1) {
-				let a = render_list[i]
-				let b = render_list[i + 1]
-				if (a[1] == b[1] && a[0] + a[2].length > b[0]) {
-					render_flag = false
-					if (a[3] < b[3]) {
-						b[2] = b[2].slice(a[0] + a[2].length - b[0])
-						b[0] = a[0] + a[2].length
-						// i++
-						if (b[2] == '') {
-							render_list.splice(i + 1, 1)
-						}
-						else {
-							i++
-						}
+		// console.log(render_list)
+		let i = 0
+		while (i < render_list.length - 1) {
+			let a = render_list[i]
+			let b = render_list[i + 1]
+			if (a[1] == b[1] && a[0] + a[2].length > b[0]) {
+				render_flag = false
+				if (a[3] < b[3]) {
+					b[2] = b[2].slice(a[0] + a[2].length - b[0])
+					b[0] = a[0] + a[2].length
+					// i++
+					if (b[2] == '') {
+						render_list.splice(i + 1, 1)
 					}
 					else {
-						a[2] = a[2].slice(0, b[0] - a[0])
-						// i++
-						if (a[2] == '') {
-							render_list.splice(i, 1)
-						}
-						else {
-							i++
-						}
+						i++
 					}
-					break
 				}
 				else {
-					i++
+					a[2] = a[2].slice(0, b[0] - a[0])
+					// i++
+					if (a[2] == '') {
+						render_list.splice(i, 1)
+					}
+					else {
+						i++
+					}
 				}
-			}
-			if (render_flag) {
 				break
 			}
+			else {
+				i++
+			}
 		}
-		// console.log(render_list)
-		vscode.window.activeTextEditor.edit(editBuilder => {
-			render_list.forEach((v, i, a) => {
-				let lineNum = vscode.window.activeTextEditor.document.lineAt(v[1]).text.length
-				if (lineNum < v[0] + v[2].length) {
-					editBuilder.insert(new vscode.Position(v[1], lineNum), " ".repeat(v[0] + v[2].length - lineNum))
-				}
-			})
-		}).then(() => {
-			vscode.window.activeTextEditor.edit(editBuilder => {
-				render_list.forEach((v, i, a) => {
-					editBuilder.replace(new vscode.Range(new vscode.Position(v[1], v[0]), new vscode.Position(v[1], v[0] + v[2].length)), v[2])
-				})
-			}).then(() => {
-				loop_flag = true
-			})
-		})
+		if (render_flag) {
+			break
+		}
 	}
+	// console.log(render_list)
+	await vscode.window.activeTextEditor.edit(editBuilder => {
+		render_list.forEach((v, i, a) => {
+			let lineNum = vscode.window.activeTextEditor.document.lineAt(v[1]).text.length
+			if (lineNum < v[0] + v[2].length) {
+				editBuilder.insert(new vscode.Position(v[1], lineNum), " ".repeat(v[0] + v[2].length - lineNum))
+			}
+		})
+	})
+	await vscode.window.activeTextEditor.edit(editBuilder => {
+		render_list.forEach((v, i, a) => {
+			editBuilder.replace(new vscode.Range(new vscode.Position(v[1], v[0]), new vscode.Position(v[1], v[0] + v[2].length)), v[2])
+		})
+	})
 }
 
 function generatEnemy(enemy_str, enemy_type) {
@@ -195,10 +187,10 @@ async function mainGame() {
 			if (enemy_list.length == 0) {
 				statusBar.setText("Next Level!")
 				await delay(1000)
-				level_id ++
+				level_id++
 				break
 			}
-			render()
+			await render()
 			await delay(20)
 		}
 		// this.intervalId = setInterval(render, 20);
